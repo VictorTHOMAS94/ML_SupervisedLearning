@@ -1,36 +1,55 @@
-import random
 import csv
+import random
+import numpy as np
 
-# number of datapoints in the dataset
-num_lines = 300
 
-# number of columns in the dataset
-num_cols = 6
+def generate_means_and_stds():
+    means = np.random.uniform(low=0.0, high=5.0, size=6)
+    stds = np.random.uniform(low=0.5, high=2.0, size=6)
 
-# list to store the dataset
-data = []
+    # Means and stds are different
+    while len(np.unique(means)) < 6:
+        means = np.random.uniform(low=0.0, high=5.0, size=6)
+    while len(np.unique(stds)) < 6:
+        stds = np.random.uniform(low=0.5, high=2.0, size=6)
 
-# mean values for each column
-mean = [0, 5, 10, 15, 20, 25]
+    # At least one column has mean close to 2.5
+    if np.abs(np.min(np.abs(means-2.5))) > 0.5:
+        means[0] = 2.5
 
-# standard deviation values for each column
-std_dev = [1, 2, 3, 4, 5, 6]
+    return means, stds
 
-# populate the dataset
-for i in range(num_lines):
-    line = []
-    for j in range(num_cols):
-        line.append(random.gauss(mean[j], std_dev[j]))
-    data.append(line)
 
-# change one column to integers
-for i in range(num_lines):
-    data[i][0] = int(data[i][0])
+def generate_data(means, stds, n_points=300):
+    np.random.seed(0)
+    data = np.zeros((n_points, 6))
+    for i in range(6):
+        data[:, i] = np.random.normal(
+            loc=means[i], scale=stds[i], size=n_points)
 
-# change one column to floats
-for i in range(num_lines):
-    data[i][1] = float(data[i][1])
+    # At least one column contains integers
+    data[:, 0] = np.round(data[:, 0])
 
-with open("artificial_dataset.csv", "w", newline="") as file:
-    writer = csv.writer(file)
-    writer.writerows(data)
+    # At least one column contains floats
+    data[:, 1] = data[:, 1] + 0.5
+
+    # Generate positive and negative correlations
+    data[:, 2] = 0.5 * data[:, 0] + 0.5 * data[:, 1]
+    data[:, 3] = -0.5 * data[:, 0] - 0.5 * data[:, 1]
+
+    # Generate a column with a correlation close to 0
+    data[:, 4] = np.random.normal(loc=0, scale=1, size=n_points)
+
+    return data
+
+
+def save_to_csv(data):
+    with open('artificial_dataset.csv', mode='w') as file:
+        writer = csv.writer(file)
+        writer.writerows(data)
+
+
+if __name__ == '__main__':
+    means, stds = generate_means_and_stds()
+    data = generate_data(means, stds)
+    save_to_csv(data)
